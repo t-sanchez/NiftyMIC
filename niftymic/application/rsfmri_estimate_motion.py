@@ -423,7 +423,7 @@ def main():
         exe_file_info, time_s2v_reg))
     print("%s | Computational Time for Pipeline: %s" % (
         exe_file_info, elapsed_time_total))
-
+    
     ph.print_line_separator()
 
     return 0

@@ -332,6 +332,9 @@ def main():
     exe_file_info = os.path.basename(os.path.abspath(__file__)).split(".")[0]
     print("%s | Computational Time for Volumetric Reconstruction: %s" % (
         exe_file_info, elapsed_time))
+    
+    for loop in range(10):
+        print("\n HELLO WORLD \n")
 
     return 0
 
