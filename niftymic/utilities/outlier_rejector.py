@@ -75,6 +75,8 @@ class OutlierRejector(object):
                 if j in indices
             ]
 
+            print("\n",rejections,"\n")
+
             for slice in slices:
                 if slice.get_slice_number() in rejections:
                     stack.delete_slice(slice)
