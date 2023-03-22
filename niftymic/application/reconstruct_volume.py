@@ -586,6 +586,7 @@ def main():
           (exe_file_info, time_reconstruction))
     print("%s | Computational Time for Entire Reconstruction Pipeline: %s" %
           (exe_file_info, elapsed_time_total))
+    print("\n This is a TEST 123456789 \n")
 
     ph.print_line_separator()
 

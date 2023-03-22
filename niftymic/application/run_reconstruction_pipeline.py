@@ -181,7 +181,7 @@ def main():
         dir_output_diagnostics,
         "%stemplate_slicecoverage.nii.gz" % args.prefix_output)
 
-    if 0: #args.bias_field_correction and args.run_bias_field_correction:
+    if args.bias_field_correction and args.run_bias_field_correction:
         time_start = ph.start_timing()
         for i, f in enumerate(args.filenames):
             output = os.path.join(
@@ -245,7 +245,7 @@ def main():
     filenames = ["'" + f + "'" for f in filenames]
     filenames_masks = ["'" + f + "'" for f in args.filenames_masks]
 
-    if 0:#args.run_recon_subject_space:
+    if args.run_recon_subject_space:
         time_start = ph.start_timing()
 
         cmd_args = ["niftymic_reconstruct_volume"]
@@ -579,8 +579,6 @@ def main():
           exe_file_info, elapsed_time_recon_template_space))
     print("%s | Computational Time for Template Space Reconstruction (Mask): %s" % (
           exe_file_info, elapsed_time_recon_template_space_mask))
-    for loop in range(10):
-        print("\n HELLO WORLD \n")
     if args.run_diagnostics:
         print("%s | Computational Time for Diagnostics: %s" % (
               exe_file_info, elapsed_time_diagnostics))
