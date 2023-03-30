@@ -7,6 +7,7 @@
 #
 
 import os
+import csv
 import scipy
 import numpy as np
 import SimpleITK as sitk
@@ -27,6 +28,7 @@ class OutlierRejector(object):
                  stacks,
                  reference,
                  threshold,
+                 cycle,
                  use_slice_masks=False,
                  use_reference_mask=True,
                  measure="NCC",
@@ -36,6 +38,7 @@ class OutlierRejector(object):
         self._stacks = stacks
         self._reference = reference
         self._threshold = threshold
+        self._cycle = cycle
         self._measure = measure
         self._use_slice_masks = use_slice_masks
         self._use_reference_mask = use_reference_mask
@@ -62,6 +65,11 @@ class OutlierRejector(object):
         #     directory="/tmp/spina/figs%s" % self._print_prefix[0:7],
         # )
 
+        # Creating the path towards the csv file where the slice rejection data will be stored
+        output_dir_path = "/test_output_dir"
+        os.makedirs(output_dir_path, exist_ok=True)
+        output_file_path = os.path.join(output_dir_path, "rejected_slices.csv")
+
         remove_stacks = []
         for i, stack in enumerate(self._stacks):
             nda_sim = np.nan_to_num(
@@ -74,8 +82,6 @@ class OutlierRejector(object):
                 j for j in [s.get_slice_number() for s in slices]
                 if j in indices
             ]
-
-            print("\n",rejections,"\n")
 
             for slice in slices:
                 if slice.get_slice_number() in rejections:
@@ -104,9 +110,34 @@ class OutlierRejector(object):
                         )
                 ph.print_info(txt)
 
+            # Get list of all slices even those which were previously deleted
+            stack_list = [s.get_slice_number() for s in slices] + stack.get_deleted_slice_numbers()
+            stack_list.sort()
+
+            # Loop over all slices that exist and/or existed within a stack 
+            stack_state =[]
+            for slice in stack_list:
+                slice_state = [] # (slice_ID, cycle, stack, measure, threshold, NCC value, just_rejected, rejected)
+
+                slice_state.append(slice)
+                slice_state.append(self._cycle)
+                slice_state.append(i+1)
+                slice_state.append(self._measure)
+                slice_state.append(self._threshold)
+                #slice_state.append(nda_sim[slice] if )
+                slice_state.append(slice in rejections)
+                slice_state.append(slice in stack.get_deleted_slice_numbers())
+                stack_state.append(slice_state)
+
             # Log stack where all slices were rejected
             if stack.get_number_of_slices() == 0:
                 remove_stacks.append(stack)
+
+            # Save data from all slices of that specific stack
+            with open(output_file_path, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerows(stack_state)
+
 
         # Remove stacks where all slices where rejected
         for stack in remove_stacks:

@@ -288,7 +288,9 @@ def main():
                     resampling_grid=stack.sitk,
                     interpolator="NearestNeighbor",
                 ))
+            print("BEFORE RUN")
             intensity_corrector.run_linear_intensity_correction()
+            print("BEFORE STACKS")
             stacks[i] = intensity_corrector.get_intensity_corrected_stack()
             print("done (c1 = %g) " %
                   intensity_corrector.get_intensity_correction_coefficients())

@@ -592,6 +592,7 @@ class TwoStepSliceToVolumeRegistrationReconstruction(
                     threshold=self._thresholds[cycle],
                     measure=self._threshold_measure,
                     verbose=True,
+                    cycle=cycle
                 )
                 outlier_rejector.run()
                 self._reconstruction_method.set_stacks(
