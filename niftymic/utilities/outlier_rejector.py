@@ -111,22 +111,23 @@ class OutlierRejector(object):
                 ph.print_info(txt)
 
             # Get list of all slices even those which were previously deleted
-            stack_list = [s.get_slice_number() for s in slices] + stack.get_deleted_slice_numbers()
+            stack_list = [s.get_slice_number() for s in stack.get_slices()] + stack.get_deleted_slice_numbers()
             stack_list.sort()
 
             # Loop over all slices that exist and/or existed within a stack 
             stack_state =[]
             for slice in stack_list:
-                slice_state = [] # (slice_ID, cycle, stack, measure, threshold, NCC value, just_rejected, rejected)
+                slice_state = [] # (slice_ID, stack, stack_filename, cycle, measure, threshold, NCC value, just_rejected, rejected)
 
                 slice_state.append(slice)
-                slice_state.append(self._cycle)
                 slice_state.append(i+1)
+                slice_state.append(stack.get_filename())
+                slice_state.append(self._cycle)
                 slice_state.append(self._measure)
                 slice_state.append(self._threshold)
-                #slice_state.append(nda_sim[slice] if )
-                slice_state.append(slice in rejections)
-                slice_state.append(slice in stack.get_deleted_slice_numbers())
+                slice_state.append(nda_sim[slice] if slice in [s.get_slice_number() for s in slices] else np.nan)
+                slice_state.append(int(slice in rejections))
+                slice_state.append(int(slice in stack.get_deleted_slice_numbers()))
                 stack_state.append(slice_state)
 
             # Log stack where all slices were rejected

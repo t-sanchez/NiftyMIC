@@ -190,7 +190,7 @@ def main():
 
     # ---------------------------Data Preprocessing---------------------------
     ph.print_title("Data Preprocessing")
-
+    
     segmentation_propagator = segprop.SegmentationPropagation(
         # registration_method=regflirt.FLIRT(use_verbose=args.verbose),
         # registration_method=niftyreg.RegAladin(use_verbose=False),
@@ -264,7 +264,7 @@ def main():
 
     else:
         time_registration = ph.get_zero_time()
-
+        
     # ---------------------------Intensity Correction--------------------------
     if args.intensity_correction:
         ph.print_title("Intensity Correction")
@@ -288,13 +288,11 @@ def main():
                     resampling_grid=stack.sitk,
                     interpolator="NearestNeighbor",
                 ))
-            print("BEFORE RUN")
             intensity_corrector.run_linear_intensity_correction()
-            print("BEFORE STACKS")
             stacks[i] = intensity_corrector.get_intensity_corrected_stack()
             print("done (c1 = %g) " %
                   intensity_corrector.get_intensity_correction_coefficients())
-
+            
     # ---------------------------Create first volume---------------------------
     time_tmp = ph.start_timing()
 
