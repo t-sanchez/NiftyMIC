@@ -180,7 +180,10 @@ def main():
     srr_slice_coverage = os.path.join(
         dir_output_diagnostics,
         "%stemplate_slicecoverage.nii.gz" % args.prefix_output)
-
+    srr_rejected_slices = os.path.join(
+        dir_output_recon_template_space,
+        "%srejected_slices.csv" % args.prefix_output)
+    
     if args.bias_field_correction and args.run_bias_field_correction:
         time_start = ph.start_timing()
         for i, f in enumerate(args.filenames):
@@ -323,7 +326,7 @@ def main():
     else:
         elapsed_time_recon_subject_space = ph.get_zero_time()
 
-    if 0: #args.run_recon_template_space:
+    if args.run_recon_template_space:
         time_start = ph.start_timing()
 
         if args.template is not None:
@@ -459,7 +462,7 @@ def main():
         elapsed_time_recon_template_space = ph.get_zero_time()
         elapsed_time_recon_template_space_mask = ph.get_zero_time()
 
-    if 0: #args.run_diagnostics:
+    if args.run_diagnostics:
         time_start = ph.start_timing()
 
         dir_input_mc = os.path.join(
@@ -546,25 +549,6 @@ def main():
                 raise RuntimeError("Generation of PDF overview failed")
         elapsed_time_diagnostics = ph.stop_timing(time_start)
 
-    # Trying to extract a txt file from the file
-    data_out = [str(a) for a in range(10)]
-    print("Data looks like : ", data_out)
-    output_dir_path = "/test_output_dir"
-
-    if not os.path.exists(output_dir_path):
-        os.makedirs(output_dir_path, exist_ok=True)
-        print("Creating output dir: ", output_dir_path)
-        print("Does the dir exist ?", os.path.exists(output_dir_path))
-
-
-    output_file_path = os.path.join(output_dir_path, "data_out.txt")
-
-    with open(output_file_path, 'w') as f:
-        for item in data_out:
-            f.write(item + '\n')
-            print("Writing in output file: ", output_file_path)
-
-
     ph.print_title("Summary")
     exe_file_info = os.path.basename(os.path.abspath(__file__)).split(".")[0]
     print("%s | Computational Time for Bias Field Corrections: %s" % (
@@ -584,7 +568,6 @@ def main():
               exe_file_info, elapsed_time_diagnostics))
     print("%s | Computational Time for Pipeline: %s" % (
           exe_file_info, ph.stop_timing(time_start_total)))
-    print("PRINTING OUTPUT", os.listdir("/test_output_dir"))
     return 0
 
 

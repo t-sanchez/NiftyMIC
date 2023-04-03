@@ -66,9 +66,8 @@ class OutlierRejector(object):
         # )
 
         # Creating the path towards the csv file where the slice rejection data will be stored
-        output_dir_path = "/test_output_dir"
-        os.makedirs(output_dir_path, exist_ok=True)
-        output_file_path = os.path.join(output_dir_path, "rejected_slices.csv")
+        output_dir_path = "/srr/recon_template_space"
+        output_file_path = os.path.join(output_dir_path, "srr_rejected_slices.csv")
 
         remove_stacks = []
         for i, stack in enumerate(self._stacks):
