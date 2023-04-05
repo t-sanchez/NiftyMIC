@@ -183,6 +183,7 @@ def main():
     srr_rejected_slices = os.path.join(
         dir_output_recon_template_space,
         "%srejected_slices.csv" % args.prefix_output)
+    open(srr_rejected_slices, 'w').close()
     
     if args.bias_field_correction and args.run_bias_field_correction:
         time_start = ph.start_timing()
