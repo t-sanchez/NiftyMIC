@@ -544,7 +544,7 @@ def main():
 
     ph.print_subtitle("Final SDA Approximation Image Mask")
     SDA = sda.ScatteredDataApproximation(
-        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True)
+        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True, final_sda=True)
     SDA.run()
     # HR volume contains updated mask based on SDA
     HR_volume_final = SDA.get_reconstruction()

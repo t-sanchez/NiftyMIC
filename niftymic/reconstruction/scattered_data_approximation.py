@@ -48,7 +48,8 @@ class ScatteredDataApproximation:
                  sigma=1,
                  sigma_array=None,
                  use_masks=False,
-                 sda_mask=True,
+                 sda_mask=False,
+                 final_sda=False,
                  verbose=True,
                  ):
 
@@ -58,6 +59,7 @@ class ScatteredDataApproximation:
         self._HR_volume = HR_volume
         self._use_masks = use_masks
         self._sda_mask = sda_mask
+        self._final_sda = final_sda
         self._verbose = verbose
 
         self._get_slice = {

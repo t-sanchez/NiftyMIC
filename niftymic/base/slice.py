@@ -340,7 +340,7 @@ class Slice:
               write_transform=True,
               suffix_mask="_mask",
               prefix_slice="_slice",
-              write_transforms_history=False,
+              write_transforms_history=True,
               ):
 
         # Create directory if not existing
