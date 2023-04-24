@@ -48,7 +48,7 @@ class ScatteredDataApproximation:
                  sigma=1,
                  sigma_array=None,
                  use_masks=False,
-                 sda_mask=False,
+                 sda_mask=True,
                  verbose=True,
                  ):
 
