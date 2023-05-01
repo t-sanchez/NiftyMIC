@@ -548,6 +548,7 @@ def main():
     SDA.run()
     # HR volume contains updated mask based on SDA
     HR_volume_final = SDA.get_reconstruction()
+    HR_denominator_map = SDA.get_denominator_volume()
     time_reconstruction += SDA.get_computational_time()
 
     elapsed_time_total = ph.stop_timing(time_start)
@@ -563,6 +564,13 @@ def main():
         HR_volume_final.sitk_mask,
         ph.append_to_filename(args.output, "_mask"),
         description=SDA.get_setting_specific_filename())
+    
+    #Save 3D denominator map
+    dw.DataWriter.write_image(
+        HR_denominator_map,
+        ph.append_to_filename(args.output, "_denominator"),
+        description=None)
+
 
     HR_volume_iterations.insert(0, HR_volume_final)
     for stack in stacks:
@@ -586,7 +594,6 @@ def main():
           (exe_file_info, time_reconstruction))
     print("%s | Computational Time for Entire Reconstruction Pipeline: %s" %
           (exe_file_info, elapsed_time_total))
-    print("\n This is a TEST 123456789 \n")
 
     ph.print_line_separator()
 

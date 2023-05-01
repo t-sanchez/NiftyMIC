@@ -61,6 +61,7 @@ class ScatteredDataApproximation:
         self._sda_mask = sda_mask
         self._final_sda = final_sda
         self._verbose = verbose
+        self._HR_Denominator_volume = None
 
         self._get_slice = {
             # (use_mask, sda_mask)
@@ -138,6 +139,11 @@ class ScatteredDataApproximation:
     def get_reconstruction(self):
         return self._HR_volume
 
+    # Get Denominator volume
+    #  \return current estimate of denominator volume
+    def get_denominator_volume(self):
+        return self._HR_Denominator_volume
+    
     def get_setting_specific_filename(self, prefix="SDA_"):
 
         # Build filename
@@ -391,6 +397,8 @@ class ScatteredDataApproximation:
             sitkh.get_itk_direction_from_sitk_image(self._HR_volume.sitk))
         helper_D.SetOrigin(self._HR_volume.sitk.GetOrigin())
 
+
+
         # Apply Recursive Gaussian YVV filter
         gaussian = itk.SmoothingRecursiveYvvGaussianImageFilter[
             image_type, image_type].New()   # YVV-based Filter
@@ -429,6 +437,20 @@ class ScatteredDataApproximation:
                 HR_volume_update)
             mask_estimator.run()
             HR_volume_update = mask_estimator.get_mask_sitk()
+
+            # HR volume of quantity of slices that passed through a voxel
+            nda_D *= (nda.max()/nda_D.max())*sitk.GetArrayFromImage(HR_volume_update)
+            temp = sitk.GetImageFromArray(nda_D.max() - nda_D)
+            temp.SetDirection(HR_volume_update.GetDirection())
+            temp.SetOrigin(HR_volume_update.GetOrigin())
+            temp.SetSpacing(HR_volume_update.GetSpacing())
+
+            print("Size of HR_volume: %s" % str(self._HR_volume.sitk.GetSize()))
+            print("Type of HR_volume: %s" % self._HR_volume.sitk.GetPixelIDTypeAsString())
+            print("Size of HR_Denominator_volume: %s" % str(temp.GetSize()))
+            print("Size of HR_mask_volume: %s" % str(HR_volume_update.GetSize()))
+
+            self._HR_Denominator_volume = temp
 
             self._HR_volume.sitk_mask = HR_volume_update
             self._HR_volume.itk_mask = sitkh.get_itk_from_sitk_image(
