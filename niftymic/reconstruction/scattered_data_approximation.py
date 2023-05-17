@@ -49,7 +49,7 @@ class ScatteredDataApproximation:
                  sigma_array=None,
                  use_masks=False,
                  sda_mask=False,
-                 final_sda=False,
+                 category=5,
                  verbose=True,
                  ):
 
@@ -59,9 +59,10 @@ class ScatteredDataApproximation:
         self._HR_volume = HR_volume
         self._use_masks = use_masks
         self._sda_mask = sda_mask
-        self._final_sda = final_sda
+        self._category = category
         self._verbose = verbose
-        self._HR_Denominator_volume = None
+        self._HR_volume_uncertainty_normalized = None
+        self._HR_volume_uncertainty = None
 
         self._get_slice = {
             # (use_mask, sda_mask)
@@ -140,9 +141,12 @@ class ScatteredDataApproximation:
         return self._HR_volume
 
     # Get Denominator volume
-    #  \return current estimate of denominator volume
-    def get_denominator_volume(self):
-        return self._HR_Denominator_volume
+    #  \return current estimate of uncertainty volume
+    def get_uncertainties(self):
+        if self._HR_volume_uncertainty is None and self._HR_volume_uncertainty_normalized is None:
+            self._compute_uncertainties()
+        print(self._HR_volume_uncertainty is None, self._HR_volume_uncertainty_normalized is None)
+        return self._HR_volume_uncertainty, self._HR_volume_uncertainty_normalized
     
     def get_setting_specific_filename(self, prefix="SDA_"):
 
@@ -439,18 +443,18 @@ class ScatteredDataApproximation:
             HR_volume_update = mask_estimator.get_mask_sitk()
 
             # HR volume of quantity of slices that passed through a voxel
-            nda_D *= (nda.max()/nda_D.max())*sitk.GetArrayFromImage(HR_volume_update)
-            temp = sitk.GetImageFromArray(nda_D.max() - nda_D)
-            temp.SetDirection(HR_volume_update.GetDirection())
-            temp.SetOrigin(HR_volume_update.GetOrigin())
-            temp.SetSpacing(HR_volume_update.GetSpacing())
+            # nda_D *= (nda.max()/nda_D.max())*sitk.GetArrayFromImage(HR_volume_update)
+            # temp = sitk.GetImageFromArray(nda_D.max() - nda_D)
+            # temp.SetDirection(HR_volume_update.GetDirection())
+            # temp.SetOrigin(HR_volume_update.GetOrigin())
+            # temp.SetSpacing(HR_volume_update.GetSpacing())
 
-            print("Size of HR_volume: %s" % str(self._HR_volume.sitk.GetSize()))
-            print("Type of HR_volume: %s" % self._HR_volume.sitk.GetPixelIDTypeAsString())
-            print("Size of HR_Denominator_volume: %s" % str(temp.GetSize()))
-            print("Size of HR_mask_volume: %s" % str(HR_volume_update.GetSize()))
+            # print("Size of HR_volume: %s" % str(self._HR_volume.sitk.GetSize()))
+            # print("Type of HR_volume: %s" % self._HR_volume.sitk.GetPixelIDTypeAsString())
+            # print("Size of HR_Denominator_volume: %s" % str(temp.GetSize()))
+            # print("Size of HR_mask_volume: %s" % str(HR_volume_update.GetSize()))
 
-            self._HR_Denominator_volume = temp
+            # self._HR_Denominator_volume = temp
 
             self._HR_volume.sitk_mask = HR_volume_update
             self._HR_volume.itk_mask = sitkh.get_itk_from_sitk_image(
@@ -575,3 +579,112 @@ class ScatteredDataApproximation:
         if self._verbose:
             nda = sitk.GetArrayFromImage(HR_volume_update)
             print("Minimum of data array = %s" % np.min(nda))
+
+
+    def _compute_uncertainties(self):
+        """
+        Generate uncertainty map based on the variance of the intensity values
+        in the overlapping regions of the slices.
+        """
+        if self._verbose:
+            ph.print_info("Generate uncertainty map")
+        
+        shape = sitk.GetArrayFromImage(self._HR_volume.sitk).shape
+        helper_D_nda = np.zeros(shape)
+
+        default_pixel_value = 0.0
+
+        for i in range(0, self._N_stacks):
+            if self._verbose:
+                ph.print_info("Stack %s/%s" % (i + 1, self._N_stacks))
+            stack = self._stacks[i]
+            slices = stack.get_slices()
+            N_slices = stack.get_number_of_slices()
+
+            for j in range(0, N_slices):
+                slice = slices[j]
+                slice_sitk = self._get_slice[(
+                    bool(self._use_masks), bool(self._sda_mask))](slice)
+
+                # Add intensity offset so that a "zero" intensity can be
+                # identified as contribution of image slice
+                slice_sitk += 1
+
+                # Nearest neighbour resampling of slice to target space (HR
+                # volume)
+                slice_resampled_sitk = sitk.Resample(
+                    slice_sitk,
+                    self._HR_volume.sitk,
+                    sitk.Euler3DTransform(),
+                    sitk.sitkNearestNeighbor,
+                    default_pixel_value,
+                    self._HR_volume.sitk.GetPixelIDValue())
+
+                # Extract array of pixel intensities
+                nda_slice = sitk.GetArrayFromImage(slice_resampled_sitk)
+
+                # Get voxels in HR volume space which are struck by the slice
+                ind_nonzero = nda_slice > 0
+
+                # update denominator
+                helper_D_nda[ind_nonzero] += 1
+
+        # TODO: Set zero entries to one; Otherwise results are very weird!?
+        helper_D_nda[helper_D_nda == 0] = 1
+
+        # Create itk-images with correct header data
+        pixel_type = itk.D
+        dimension = 3
+        image_type = itk.Image[pixel_type, dimension]
+
+        itk2np = itk.PyBuffer[image_type]
+        helper_D = itk2np.GetImageFromArray(helper_D_nda)
+
+        helper_D.SetSpacing(self._HR_volume.sitk.GetSpacing())
+        helper_D.SetDirection(
+            sitkh.get_itk_direction_from_sitk_image(self._HR_volume.sitk))
+        helper_D.SetOrigin(self._HR_volume.sitk.GetOrigin())
+
+
+
+        # Apply Recursive Gaussian YVV filter
+        gaussian = itk.SmoothingRecursiveYvvGaussianImageFilter[
+            image_type, image_type].New()   # YVV-based Filter
+        
+        # Deriche-based Filter
+        gaussian.SetInput(helper_D)
+        gaussian.Update()
+        HR_volume_update_D = gaussian.GetOutput()
+        HR_volume_update_D.DisconnectPipeline()
+
+        # Convert denominator back to data array
+        nda_D = itk2np.GetArrayFromImage(HR_volume_update_D)
+
+        # max_intensity_HR_volume = sitk.GetArrayFromImage(self._HR_volume.sitk).max()
+
+        # HR volume of quantity of slices that passed through a voxel
+        # Normalize intensities to Volume intensity range
+        # Invert slice counts nda_D to get uncertainty
+        # Multiply by mask to get uncertainty only in mask region
+        mask = sitk.GetArrayFromImage(self._HR_volume.sitk_mask)
+
+        # Option1 => non-normalized slice striking voxel counting independant of studied subject
+        uncertainty = nda_D # Number of slices striking a voxel
+        uncertainty = np.around(uncertainty, decimals=0)*mask 
+        uncertainty = sitk.GetImageFromArray(uncertainty)
+        uncertainty.SetDirection(self._HR_volume.sitk_mask.GetDirection())
+        uncertainty.SetOrigin(self._HR_volume.sitk_mask.GetOrigin())
+        uncertainty.SetSpacing(self._HR_volume.sitk_mask.GetSpacing())
+        self._HR_volume_uncertainty = uncertainty
+
+        # Option2 => normalization dependant of studied subject
+        normalized_uncertainty = self._N_stacks - np.clip(nda_D, 0, self._N_stacks) + 1 # Maximum accuracy is the number of stacks
+        normalized_uncertainty *= mask # Masking
+        normalized_uncertainty = sitk.GetImageFromArray(normalized_uncertainty.astype(np.uint8))
+        normalized_uncertainty.SetDirection(self._HR_volume.sitk_mask.GetDirection())
+        normalized_uncertainty.SetOrigin(self._HR_volume.sitk_mask.GetOrigin())
+        normalized_uncertainty.SetSpacing(self._HR_volume.sitk_mask.GetSpacing())
+        self._HR_volume_uncertainty_normalized = normalized_uncertainty
+
+        print(self._HR_volume_uncertainty is None, self._HR_volume_uncertainty_normalized is None)
+

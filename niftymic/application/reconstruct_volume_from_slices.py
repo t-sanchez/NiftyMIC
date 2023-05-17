@@ -71,6 +71,11 @@ def main():
     input_parser.add_verbose(default=0)
     input_parser.add_viewer(default="itksnap")
     input_parser.add_argument(
+        "--uncertainty", "-unc",
+        action='store_true',
+        help="If given, the uncertainty of the reconstruction is estimated "
+    )
+    input_parser.add_argument(
         "--mask", "-mask",
         action='store_true',
         help="If given, input images are interpreted as image masks. "
@@ -216,11 +221,24 @@ def main():
 
     if args.sda:
         ph.print_title("Compute SDA reconstruction")
+        for N in range(10):
+            ph.print_info("SDA iteration %d" % (N + 1))
         SDA = sda.ScatteredDataApproximation(
-            stacks, recon0, sigma=args.alpha, sda_mask=args.mask)
+            stacks, recon0, sigma=args.alpha, sda_mask=args.mask, category=5)
         SDA.run()
         recon = SDA.get_reconstruction()
         filename = SDA.get_setting_specific_filename()
+        
+        if args.uncertainty:
+            recon_uncertainty, recon_uncertainty_normalized = SDA.get_uncertainties()
+            dw.DataWriter.write_image(
+            recon_uncertainty,
+            ph.append_to_filename(args.output, "_uncertainty"),
+                description=None)
+            dw.DataWriter.write_image(
+            recon_uncertainty_normalized,
+            ph.append_to_filename(args.output, "_uncertainty_normalized"),
+                description=None)
         if args.mask:
             dw.DataWriter.write_mask(
                 recon.sitk_mask, args.output, description=filename)
@@ -232,6 +250,8 @@ def main():
             show_niftis.insert(0, args.output)
 
     else:
+        for N in range(10):
+            ph.print_info("Tikhonov iteration %d" % (N + 1))
         if args.reconstruction_type in ["TVL2", "HuberL2"]:
             ph.print_title(
                 "Compute Initial value for %s" % args.reconstruction_type)
@@ -318,6 +338,16 @@ def main():
         else:
             dw.DataWriter.write_image(
                 recon.sitk, args.output, description=filename)
+
+        if args.uncertainty:
+            SDA = sda.ScatteredDataApproximation(
+                stacks, recon, sigma=args.alpha)
+            recon_uncertainty = SDA.get_uncertainty_volume()
+
+            dw.DataWriter.write_image(
+                    recon_uncertainty,
+                    ph.append_to_filename(args.output, "_uncertainty"),
+                    description=None)
 
         if args.verbose:
             show_niftis.insert(0, args.output)

@@ -141,7 +141,7 @@ def main():
         "a target stack is automatically estimated. "
         "A motion score similar to the one presented in Kainz et al. (2015). "
         "is used to estimate the least motion-affected stack as initial "
-        "reference/target stack. THIS IS A TEST 1234.",
+        "reference/target stack.",
         default=1,
     )
 
@@ -180,10 +180,7 @@ def main():
     srr_slice_coverage = os.path.join(
         dir_output_diagnostics,
         "%stemplate_slicecoverage.nii.gz" % args.prefix_output)
-    srr_rejected_slices = os.path.join(
-        dir_output_recon_template_space,
-        "%srejected_slices.csv" % args.prefix_output)
-    
+
     if args.bias_field_correction and args.run_bias_field_correction:
         time_start = ph.start_timing()
         for i, f in enumerate(args.filenames):
@@ -422,9 +419,6 @@ def main():
             cmd_args.append("--sda")
             cmd_args.append("--alpha 1")
 
-            # Uncertainty map
-            cmd_args.append("--uncertainty")
-
             cmd = (" ").join(cmd_args)
             ph.execute_command(cmd)
             elapsed_time_recon_template_space_mask = ph.stop_timing(
@@ -566,11 +560,14 @@ def main():
           exe_file_info, elapsed_time_recon_template_space))
     print("%s | Computational Time for Template Space Reconstruction (Mask): %s" % (
           exe_file_info, elapsed_time_recon_template_space_mask))
+    for loop in range(10):
+        print("\n HELLO WORLD \n")
     if args.run_diagnostics:
         print("%s | Computational Time for Diagnostics: %s" % (
               exe_file_info, elapsed_time_diagnostics))
     print("%s | Computational Time for Pipeline: %s" % (
           exe_file_info, ph.stop_timing(time_start_total)))
+
     return 0
 
 

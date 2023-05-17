@@ -32,6 +32,7 @@ class OutlierRejector(object):
                  use_slice_masks=False,
                  use_reference_mask=True,
                  measure="NCC",
+                 output_dir="srr/recon_subject_space",
                  verbose=True,
                  ):
 
@@ -42,6 +43,7 @@ class OutlierRejector(object):
         self._measure = measure
         self._use_slice_masks = use_slice_masks
         self._use_reference_mask = use_reference_mask
+        self._output_dir = output_dir
         self._verbose = verbose
 
     def get_stacks(self):
@@ -66,8 +68,8 @@ class OutlierRejector(object):
         # )
 
         # Creating the path towards the csv file where the slice rejection data will be stored
-        output_dir_path = "/srr/recon_template_space"
-        output_file_path = os.path.join(output_dir_path, "srr_rejected_slices.csv")
+        output_dir_path = "/srr/recon_subject_space"
+        output_file_path = os.path.join(output_dir_path, "srr_rejectedSlices.csv")
 
         remove_stacks = []
         for i, stack in enumerate(self._stacks):
@@ -142,16 +144,30 @@ class OutlierRejector(object):
                 remove_stacks.append(stack)
 
             # Save data from all slices of that specific stack
-            if (os.stat(output_file_path).st_size == 0):
+            with open("new_file.txt", "w") as f:
+                # Write some data to the file
+                f.write("Hello, world!\n")
+
+            if os.path.exists(output_file_path):
+                if (os.stat(output_file_path).st_size == 0):
+                    with open(output_file_path, 'w') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["subject_name", "stack_filename",
+                                        "mask_filename", "slice", "stack",
+                                        "cycle", "measure", "threshold",
+                                        "NCC_value", "just_rejected", "rejected"])
+                else:
+                    with open(output_file_path, 'a') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(stack_state)
+            else:
                 with open(output_file_path, 'w') as f:
                     writer = csv.writer(f)
                     writer.writerow(["subject_name", "stack_filename",
-                                     "mask_filename", "slice", "stack",
-                                     "cycle", "measure", "threshold",
-                                     "NCC_value", "just_rejected", "rejected"])
-            with open(output_file_path, 'a') as f:
-                writer = csv.writer(f)
-                writer.writerows(stack_state)
+                                    "mask_filename", "slice", "stack",
+                                    "cycle", "measure", "threshold",
+                                    "NCC_value", "just_rejected", "rejected"])
+                    writer.writerows(stack_state)
 
 
         # Remove stacks where all slices where rejected

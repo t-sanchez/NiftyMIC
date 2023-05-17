@@ -344,6 +344,7 @@ def main():
                 reference=HR_volume,
                 threshold=threshold_v2v,
                 measure=rejection_measure,
+                output_dir=dir_output,
                 verbose=True,
             )
             outlier_rejector.run()
@@ -544,11 +545,11 @@ def main():
 
     ph.print_subtitle("Final SDA Approximation Image Mask")
     SDA = sda.ScatteredDataApproximation(
-        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True, final_sda=True)
+        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True, category=5)
     SDA.run()
     # HR volume contains updated mask based on SDA
     HR_volume_final = SDA.get_reconstruction()
-    HR_denominator_map = SDA.get_denominator_volume()
+    HR_uncertainty, HR_uncertainty_normalized = SDA.get_uncertainties()
     time_reconstruction += SDA.get_computational_time()
 
     elapsed_time_total = ph.stop_timing(time_start)
@@ -565,10 +566,14 @@ def main():
         ph.append_to_filename(args.output, "_mask"),
         description=SDA.get_setting_specific_filename())
     
-    #Save 3D denominator map
+    #Save 3D uncertainty map
     dw.DataWriter.write_image(
-        HR_denominator_map,
-        ph.append_to_filename(args.output, "_denominator"),
+        HR_uncertainty,
+        ph.append_to_filename(args.output, "_uncertainty"),
+        description=None)
+    dw.DataWriter.write_image(
+        HR_uncertainty_normalized,
+        ph.append_to_filename(args.output, "_uncertainty_normalized"),
         description=None)
 
 
