@@ -143,10 +143,6 @@ class OutlierRejector(object):
             if stack.get_number_of_slices() == 0:
                 remove_stacks.append(stack)
 
-            # Save data from all slices of that specific stack
-            with open("new_file.txt", "w") as f:
-                # Write some data to the file
-                f.write("Hello, world!\n")
 
             if os.path.exists(output_file_path):
                 if (os.stat(output_file_path).st_size == 0):

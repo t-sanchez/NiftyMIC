@@ -585,7 +585,22 @@ class ScatteredDataApproximation:
         """
         Generate uncertainty map based on the variance of the intensity values
         in the overlapping regions of the slices.
+
+        Input:
+            - self._stacks (list of Stack objects)
+            - self._HR_volume (Volume object)
+            - self._use_masks (bool)
+            - self._sda_mask (bool)
+            - self._N_stacks (int)
+            - self._verbose (bool)
+
+        Output:
+            - self._HR_volume.sitk_uncertainty (sitk.Image)
+            - self._HR_volume.itk_uncertainty (itk.Image)
+
         """
+
+
         if self._verbose:
             ph.print_info("Generate uncertainty map")
         
@@ -665,17 +680,18 @@ class ScatteredDataApproximation:
         # HR volume of quantity of slices that passed through a voxel
         # Normalize intensities to Volume intensity range
         # Invert slice counts nda_D to get uncertainty
+        
         # Multiply by mask to get uncertainty only in mask region
         mask = sitk.GetArrayFromImage(self._HR_volume.sitk_mask)
 
         # Option1 => non-normalized slice striking voxel counting independant of studied subject
         uncertainty = nda_D # Number of slices striking a voxel
-        uncertainty = np.around(uncertainty, decimals=0)*mask 
-        uncertainty = sitk.GetImageFromArray(uncertainty)
-        uncertainty.SetDirection(self._HR_volume.sitk_mask.GetDirection())
-        uncertainty.SetOrigin(self._HR_volume.sitk_mask.GetOrigin())
-        uncertainty.SetSpacing(self._HR_volume.sitk_mask.GetSpacing())
-        self._HR_volume_uncertainty = uncertainty
+        uncertainty = np.around(uncertainty, decimals=0)*mask  # Masking
+        uncertainty = sitk.GetImageFromArray(uncertainty) # Converting to sitk image
+        uncertainty.SetDirection(self._HR_volume.sitk_mask.GetDirection()) # Setting direction
+        uncertainty.SetOrigin(self._HR_volume.sitk_mask.GetOrigin()) # Setting origin
+        uncertainty.SetSpacing(self._HR_volume.sitk_mask.GetSpacing()) # Setting spacing
+        self._HR_volume_uncertainty = uncertainty # Saving uncertainty map
 
         # Option2 => normalization dependant of studied subject
         normalized_uncertainty = self._N_stacks - np.clip(nda_D, 0, self._N_stacks) + 1 # Maximum accuracy is the number of stacks
@@ -686,5 +702,7 @@ class ScatteredDataApproximation:
         normalized_uncertainty.SetSpacing(self._HR_volume.sitk_mask.GetSpacing())
         self._HR_volume_uncertainty_normalized = normalized_uncertainty
 
-        print(self._HR_volume_uncertainty is None, self._HR_volume_uncertainty_normalized is None)
+        if self._HR_volume_uncertainty is None or self._HR_volume_uncertainty_normalized is None:
+            raise ValueError("HR volume uncertainty is None")
+        
 
