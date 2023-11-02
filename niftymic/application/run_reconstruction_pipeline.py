@@ -12,15 +12,11 @@ import numpy as np
 
 import pysitk.python_helper as ph
 
-import niftymic.validation.simulate_stacks_from_reconstruction as \
-    simulate_stacks_from_reconstruction
-import niftymic.validation.evaluate_simulated_stack_similarity as \
-    evaluate_simulated_stack_similarity
-import niftymic.validation.show_evaluated_simulated_stack_similarity as \
-    show_evaluated_simulated_stack_similarity
+import niftymic.validation.simulate_stacks_from_reconstruction as simulate_stacks_from_reconstruction
+import niftymic.validation.evaluate_simulated_stack_similarity as evaluate_simulated_stack_similarity
+import niftymic.validation.show_evaluated_simulated_stack_similarity as show_evaluated_simulated_stack_similarity
 import niftymic.application.show_slice_coverage as show_slice_coverage
-import niftymic.validation.export_side_by_side_simulated_vs_original_slice_comparison as \
-    export_side_by_side_simulated_vs_original_slice_comparison
+import niftymic.validation.export_side_by_side_simulated_vs_original_slice_comparison as export_side_by_side_simulated_vs_original_slice_comparison
 import niftymic.utilities.target_stack_estimator as ts_estimator
 from niftymic.utilities.input_arparser import InputArgparser
 import niftymic.utilities.template_stack_estimator as tse
@@ -29,7 +25,6 @@ from niftymic.definitions import DIR_TEMPLATES
 
 
 def main():
-
     time_start_total = ph.start_timing()
 
     np.set_printoptions(precision=3)
@@ -82,57 +77,65 @@ def main():
         help="Turn on/off bias field correction. "
         "If off, it is assumed that this step was already performed "
         "if --bias-field-correction is active.",
-        default=1)
+        default=1,
+    )
     input_parser.add_option(
         option_string="--run-recon-subject-space",
         type=int,
         help="Turn on/off reconstruction in subject space. "
         "If off, it is assumed that this step was already performed.",
-        default=1)
+        default=1,
+    )
     input_parser.add_option(
         option_string="--run-recon-template-space",
         type=int,
         help="Turn on/off reconstruction in template space. "
         "If off, it is assumed that this step was already performed.",
-        default=1)
+        default=1,
+    )
     input_parser.add_option(
         option_string="--run-diagnostics",
         type=int,
         help="Turn on/off diagnostics of the obtained volumetric "
         "reconstruction. ",
-        default=0)
+        default=0,
+    )
     input_parser.add_option(
         option_string="--initial-transform",
         type=str,
         help="Set initial transform to be used for register_image.",
-        default=None)
+        default=None,
+    )
     input_parser.add_outlier_rejection(default=1)
     input_parser.add_threshold_first(default=0.5)
     input_parser.add_threshold(default=0.8)
     input_parser.add_argument(
-        "--sda", "-sda",
-        action='store_true',
+        "--sda",
+        "-sda",
+        action="store_true",
         help="If given, the volume is reconstructed using "
         "Scattered Data Approximation (Vercauteren et al., 2006). "
         "--alpha is considered the value for the standard deviation then. "
-        "Recommended value is, e.g., --alpha 0.8"
+        "Recommended value is, e.g., --alpha 0.8",
     )
     input_parser.add_argument(
-        "--v2v-robust", "-v2v-robust",
-        action='store_true',
+        "--v2v-robust",
+        "-v2v-robust",
+        action="store_true",
         help="If given, a more robust volume-to-volume registration step is "
         "performed, i.e. four rigid registrations are performed using four "
         "rigid transform initializations based on "
-        "principal component alignment of associated masks."
+        "principal component alignment of associated masks.",
     )
     input_parser.add_interleave(default=3)
     input_parser.add_argument(
-        "--s2v-hierarchical", "-s2v-hierarchical",
-        action='store_true',
+        "--s2v-hierarchical",
+        "-s2v-hierarchical",
+        action="store_true",
         help="If given, a hierarchical approach for the first slice-to-volume "
         "registration cycle is used, i.e. sub-packages defined by the "
         "specified interleave (--interleave) are registered until each "
-        "slice is registered independently."
+        "slice is registered independently.",
     )
     input_parser.add_option(
         option_string="--automatic-target-stack",
@@ -145,6 +148,9 @@ def main():
         default=1,
     )
 
+    input_parser.add_extra_frame_target(default=10)
+    input_parser.add_boundary_stacks(default=[10, 10, 0])
+
     args = input_parser.parse_args()
     input_parser.print_arguments(args)
 
@@ -152,40 +158,47 @@ def main():
         if args.template_mask is None:
             raise ValueError(
                 "If template image is given, also its mask needs to be "
-                "provided")
+                "provided"
+            )
 
     if args.log_config:
         input_parser.log_config(os.path.abspath(__file__))
 
     dir_output_preprocessing = os.path.join(
-        args.dir_output, "preprocessing_n4itk")
+        args.dir_output, "preprocessing_n4itk"
+    )
     dir_output_recon_subject_space = os.path.join(
-        args.dir_output, "recon_subject_space")
+        args.dir_output, "recon_subject_space"
+    )
     dir_output_recon_template_space = os.path.join(
-        args.dir_output, "recon_template_space")
-    dir_output_diagnostics = os.path.join(
-        args.dir_output, "diagnostics")
+        args.dir_output, "recon_template_space"
+    )
+    dir_output_diagnostics = os.path.join(args.dir_output, "diagnostics")
 
     srr_subject = os.path.join(
-        dir_output_recon_subject_space,
-        "%ssubject.nii.gz" % args.prefix_output)
+        dir_output_recon_subject_space, "%ssubject.nii.gz" % args.prefix_output
+    )
     srr_subject_mask = ph.append_to_filename(srr_subject, "_mask")
     srr_template = os.path.join(
         dir_output_recon_template_space,
-        "%stemplate.nii.gz" % args.prefix_output)
+        "%stemplate.nii.gz" % args.prefix_output,
+    )
     srr_template_mask = ph.append_to_filename(srr_template, "_mask")
     trafo_template = os.path.join(
         dir_output_recon_template_space,
-        "%stemplate_transform_sitk.txt" % args.prefix_output)
+        "%stemplate_transform_sitk.txt" % args.prefix_output,
+    )
     srr_slice_coverage = os.path.join(
         dir_output_diagnostics,
-        "%stemplate_slicecoverage.nii.gz" % args.prefix_output)
+        "%stemplate_slicecoverage.nii.gz" % args.prefix_output,
+    )
 
     if args.bias_field_correction and args.run_bias_field_correction:
         time_start = ph.start_timing()
         for i, f in enumerate(args.filenames):
             output = os.path.join(
-                dir_output_preprocessing, os.path.basename(f))
+                dir_output_preprocessing, os.path.basename(f)
+            )
             cmd_args = []
             cmd_args.append("--filename '%s'" % f)
             cmd_args.append("--filename-mask '%s'" % args.filenames_masks[i])
@@ -197,12 +210,16 @@ def main():
             if exit_code != 0:
                 raise RuntimeError("Bias field correction failed")
         elapsed_time_bias = ph.stop_timing(time_start)
-        filenames = [os.path.join(dir_output_preprocessing, os.path.basename(f))
-                     for f in args.filenames]
+        filenames = [
+            os.path.join(dir_output_preprocessing, os.path.basename(f))
+            for f in args.filenames
+        ]
     elif args.bias_field_correction and not args.run_bias_field_correction:
         elapsed_time_bias = ph.get_zero_time()
-        filenames = [os.path.join(dir_output_preprocessing, os.path.basename(f))
-                     for f in args.filenames]
+        filenames = [
+            os.path.join(dir_output_preprocessing, os.path.basename(f))
+            for f in args.filenames
+        ]
     else:
         elapsed_time_bias = ph.get_zero_time()
         filenames = args.filenames
@@ -210,22 +227,27 @@ def main():
     # Specify target stack for intensity correction and reconstruction space
     elapsed_time_target_stack = ph.get_zero_time()
     if args.target_stack is None:
-
         if args.automatic_target_stack:
             ph.print_info(
-                "Searching for suitable target stack ... ", newline=False)
-            target_stack_estimator = \
+                "Searching for suitable target stack ... ", newline=False
+            )
+            target_stack_estimator = (
                 ts_estimator.TargetStackEstimator.from_motion_score(
                     file_paths=filenames,
                     file_paths_masks=args.filenames_masks,
                 )
+            )
             print("done")
-            elapsed_time_target_stack = \
+            elapsed_time_target_stack = (
                 target_stack_estimator.get_computational_time()
+            )
             ph.print_info(
-                "Computational time for target stack selection: %s" % (elapsed_time_target_stack))
-            target_stack_index = \
+                "Computational time for target stack selection: %s"
+                % (elapsed_time_target_stack)
+            )
+            target_stack_index = (
                 target_stack_estimator.get_target_stack_index()
+            )
             target_stack = filenames[target_stack_index]
             ph.print_info("Chosen target stack: %s" % target_stack)
 
@@ -238,7 +260,8 @@ def main():
         except ValueError as e:
             raise ValueError(
                 "--target-stack must correspond to an image as provided by "
-                "--filenames")
+                "--filenames"
+            )
         target_stack = filenames[target_stack_index]
 
     # Add single quotes around individual filenames to account for whitespaces
@@ -255,8 +278,9 @@ def main():
         cmd_args.append("--target-stack '%s'" % target_stack)
         cmd_args.append("--output '%s'" % srr_subject)
         cmd_args.append("--suffix-mask '%s'" % args.suffix_mask)
-        cmd_args.append("--intensity-correction %d" %
-                        args.intensity_correction)
+        cmd_args.append(
+            "--intensity-correction %d" % args.intensity_correction
+        )
         cmd_args.append("--alpha %s" % args.alpha)
         cmd_args.append("--iter-max %d" % args.iter_max)
         cmd_args.append("--two-step-cycles %d" % args.two_step_cycles)
@@ -265,6 +289,10 @@ def main():
         cmd_args.append("--threshold %f" % args.threshold)
         cmd_args.append("--verbose %d" % args.verbose)
         cmd_args.append("--log-config %d" % args.log_config)
+        cmd_args.append("--extra-frame-target %d" % args.extra_frame_target)
+        cmd_args.append(
+            "--boundary-stack " + " ".join(map(str, args.boundary_stacks))
+        )
 
         if args.isotropic_resolution is not None:
             isotropic_resolution = args.isotropic_resolution
@@ -275,8 +303,10 @@ def main():
         cmd_args.append("--isotropic-resolution %f" % isotropic_resolution)
 
         if args.slice_thicknesses is not None:
-            cmd_args.append("--slice-thicknesses %s" %
-                            " ".join(map(str, args.slice_thicknesses)))
+            cmd_args.append(
+                "--slice-thicknesses %s"
+                % " ".join(map(str, args.slice_thicknesses))
+            )
 
         if args.reference is not None:
             cmd_args.append("--reference '%s'" % args.reference)
@@ -299,7 +329,8 @@ def main():
         # (Approximated using SDA within reconstruct_volume)
         if 0:
             dir_motion_correction = os.path.join(
-                dir_output_recon_subject_space, "motion_correction")
+                dir_output_recon_subject_space, "motion_correction"
+            )
             cmd_args = ["niftymic_reconstruct_volume_from_slices"]
             cmd_args.append("--filenames %s" % " ".join(filenames_masks))
             cmd_args.append("--dir-input-mc '%s'" % dir_motion_correction)
@@ -308,9 +339,14 @@ def main():
             cmd_args.append("--suffix-mask '%s'" % args.suffix_mask)
             cmd_args.append("--mask")
             cmd_args.append("--log-config %d" % args.log_config)
+            cmd_args.append(
+                "--extra-frame-target %d" % args.extra_frame_target
+            )
             if args.slice_thicknesses is not None:
-                cmd_args.append("--slice-thicknesses %s" %
-                                " ".join(map(str, args.slice_thicknesses)))
+                cmd_args.append(
+                    "--slice-thicknesses %s"
+                    % " ".join(map(str, args.slice_thicknesses))
+                )
             if args.sda:
                 cmd_args.append("--sda")
                 cmd_args.append("--alpha 1")
@@ -330,15 +366,18 @@ def main():
             template = args.template
             template_mask = args.template_mask
         else:
-            template_stack_estimator = \
-                tse.TemplateStackEstimator.from_mask(srr_subject_mask)
+            template_stack_estimator = tse.TemplateStackEstimator.from_mask(
+                srr_subject_mask
+            )
             gestational_age = template_stack_estimator.get_estimated_gw()
             ph.print_info("Estimated gestational age: %d" % gestational_age)
 
             template = os.path.join(
-                DIR_TEMPLATES, "STA%d.nii.gz" % gestational_age)
+                DIR_TEMPLATES, "STA%d.nii.gz" % gestational_age
+            )
             template_mask = os.path.join(
-                DIR_TEMPLATES, "STA%d_mask.nii.gz" % gestational_age)
+                DIR_TEMPLATES, "STA%d_mask.nii.gz" % gestational_age
+            )
 
         # Register SRR to template space
         cmd_args = ["niftymic_register_image"]
@@ -346,8 +385,10 @@ def main():
         cmd_args.append("--moving '%s'" % srr_subject)
         cmd_args.append("--fixed-mask '%s'" % template_mask)
         cmd_args.append("--moving-mask '%s'" % srr_subject_mask)
-        cmd_args.append("--dir-input-mc '%s'" % os.path.join(
-            dir_output_recon_subject_space, "motion_correction"))
+        cmd_args.append(
+            "--dir-input-mc '%s'"
+            % os.path.join(dir_output_recon_subject_space, "motion_correction")
+        )
         cmd_args.append("--output '%s'" % trafo_template)
         cmd_args.append("--verbose %s" % args.verbose)
         cmd_args.append("--log-config %d" % args.log_config)
@@ -355,7 +396,8 @@ def main():
             cmd_args.append("--init-pca")
         else:
             cmd_args.append(
-                "--initial-transform '%s'" % args.initial_transform)
+                "--initial-transform '%s'" % args.initial_transform
+            )
         cmd = (" ").join(cmd_args)
         exit_code = ph.execute_command(cmd)
         if exit_code != 0:
@@ -365,24 +407,30 @@ def main():
 
         # Compute SRR in template space
         dir_input_mc = os.path.join(
-            dir_output_recon_template_space, "motion_correction")
+            dir_output_recon_template_space, "motion_correction"
+        )
         cmd_args = ["niftymic_reconstruct_volume_from_slices"]
         cmd_args.append("--filenames %s" % (" ").join(filenames))
         cmd_args.append("--filenames-masks %s" % (" ").join(filenames_masks))
         cmd_args.append("--dir-input-mc '%s'" % dir_input_mc)
         cmd_args.append("--output '%s'" % srr_template)
-        cmd_args.append("--reconstruction-space '%s'" % template)
+        if args.extra_frame_target == 10:
+            cmd_args.append("--reconstruction-space '%s'" % template)
         cmd_args.append("--target-stack '%s'" % target_stack)
         cmd_args.append("--iter-max %d" % args.iter_max)
         cmd_args.append("--alpha %s" % args.alpha)
         cmd_args.append("--suffix-mask '%s'" % args.suffix_mask)
         cmd_args.append("--log-config %d" % args.log_config)
+        cmd_args.append("--extra-frame-target %d" % args.extra_frame_target)
         if args.isotropic_resolution is not None:
-            cmd_args.append("--isotropic-resolution %f" %
-                            args.isotropic_resolution)
+            cmd_args.append(
+                "--isotropic-resolution %f" % args.isotropic_resolution
+            )
         if args.slice_thicknesses is not None:
-            cmd_args.append("--slice-thicknesses %s" %
-                            " ".join(map(str, args.slice_thicknesses)))
+            cmd_args.append(
+                "--slice-thicknesses %s"
+                % " ".join(map(str, args.slice_thicknesses))
+            )
         if args.sda:
             cmd_args.append("--sda")
         cmd = (" ").join(cmd_args)
@@ -395,21 +443,30 @@ def main():
         if 1:
             time_start = ph.start_timing()
             dir_motion_correction = os.path.join(
-                dir_output_recon_template_space, "motion_correction")
+                dir_output_recon_template_space, "motion_correction"
+            )
             cmd_args = ["niftymic_reconstruct_volume_from_slices"]
             cmd_args.append("--filenames %s" % " ".join(filenames_masks))
             cmd_args.append("--dir-input-mc '%s'" % dir_motion_correction)
             cmd_args.append("--output '%s'" % srr_template_mask)
-            cmd_args.append("--reconstruction-space '%s'" % srr_template)
+            if args.extra_frame_target == 10:
+                cmd_args.append("--reconstruction-space '%s'" % template)
             cmd_args.append("--suffix-mask '%s'" % args.suffix_mask)
             cmd_args.append("--log-config %d" % args.log_config)
             cmd_args.append("--mask")
+            cmd_args.append(
+                "--extra-frame-target %d" % args.extra_frame_target
+            )
+
             if args.isotropic_resolution is not None:
-                cmd_args.append("--isotropic-resolution %f" %
-                                args.isotropic_resolution)
+                cmd_args.append(
+                    "--isotropic-resolution %f" % args.isotropic_resolution
+                )
             if args.slice_thicknesses is not None:
-                cmd_args.append("--slice-thicknesses %s" %
-                                " ".join(map(str, args.slice_thicknesses)))
+                cmd_args.append(
+                    "--slice-thicknesses %s"
+                    % " ".join(map(str, args.slice_thicknesses))
+                )
 
             # SRR approach
             # cmd_args.append("--alpha 0.1")
@@ -421,16 +478,17 @@ def main():
 
             cmd = (" ").join(cmd_args)
             ph.execute_command(cmd)
-            elapsed_time_recon_template_space_mask = ph.stop_timing(
-                time_start)
-        
+            elapsed_time_recon_template_space_mask = ph.stop_timing(time_start)
+
         if args.verbose:
             ph.show_nifti(srr_template, segmentation=srr_template_mask)
 
         # Copy SRR to output directory
         if 0:
             output = "%sSRR_Stacks%d.nii.gz" % (
-                args.prefix_output, len(args.filenames))
+                args.prefix_output,
+                len(args.filenames),
+            )
             path_to_output = os.path.join(args.dir_output, output)
             cmd = "cp -p '%s' '%s'" % (srr_template, path_to_output)
             exit_code = ph.execute_command(cmd)
@@ -446,7 +504,8 @@ def main():
             ]
             output_masked = "Masked_%s" % output
             path_to_output_masked = os.path.join(
-                args.dir_output, output_masked)
+                args.dir_output, output_masked
+            )
             cmd_args.append("--filenames %s" % " ".join(fnames))
             cmd_args.append("--output '%s'" % path_to_output_masked)
             cmd = (" ").join(cmd_args)
@@ -463,13 +522,17 @@ def main():
         time_start = ph.start_timing()
 
         dir_input_mc = os.path.join(
-            dir_output_recon_template_space, "motion_correction")
+            dir_output_recon_template_space, "motion_correction"
+        )
         dir_output_orig_vs_proj = os.path.join(
-            dir_output_diagnostics, "original_vs_projected")
+            dir_output_diagnostics, "original_vs_projected"
+        )
         dir_output_selfsimilarity = os.path.join(
-            dir_output_diagnostics, "selfsimilarity")
+            dir_output_diagnostics, "selfsimilarity"
+        )
         dir_output_orig_vs_proj_pdf = os.path.join(
-            dir_output_orig_vs_proj, "pdf")
+            dir_output_orig_vs_proj, "pdf"
+        )
 
         # Show slice coverage over reconstruction space
         exe = os.path.abspath(show_slice_coverage.__file__)
@@ -488,15 +551,18 @@ def main():
         cmd_args = ["python %s" % exe]
         cmd_args.append("--filenames %s" % (" ").join(filenames))
         if args.filenames_masks is not None:
-            cmd_args.append("--filenames-masks %s" %
-                            (" ").join(filenames_masks))
+            cmd_args.append(
+                "--filenames-masks %s" % (" ").join(filenames_masks)
+            )
         cmd_args.append("--dir-input-mc '%s'" % dir_input_mc)
         cmd_args.append("--dir-output '%s'" % dir_output_orig_vs_proj)
         cmd_args.append("--reconstruction '%s'" % srr_template)
         cmd_args.append("--copy-data 1")
         if args.slice_thicknesses is not None:
-            cmd_args.append("--slice-thicknesses %s" %
-                            " ".join(map(str, args.slice_thicknesses)))
+            cmd_args.append(
+                "--slice-thicknesses %s"
+                % " ".join(map(str, args.slice_thicknesses))
+            )
         # cmd_args.append("--verbose %s" % args.verbose)
         cmd = (" ").join(cmd_args)
         exit_code = ph.execute_command(cmd)
@@ -505,15 +571,17 @@ def main():
 
         filenames_simulated = [
             "'%s" % os.path.join(dir_output_orig_vs_proj, os.path.basename(f))
-            for f in filenames]
+            for f in filenames
+        ]
 
         # Evaluate slice similarities to ground truth
         exe = os.path.abspath(evaluate_simulated_stack_similarity.__file__)
         cmd_args = ["python %s" % exe]
         cmd_args.append("--filenames %s" % (" ").join(filenames_simulated))
         if args.filenames_masks is not None:
-            cmd_args.append("--filenames-masks %s" %
-                            (" ").join(filenames_masks))
+            cmd_args.append(
+                "--filenames-masks %s" % (" ").join(filenames_masks)
+            )
         cmd_args.append("--measures NCC SSIM")
         cmd_args.append("--dir-output '%s'" % dir_output_selfsimilarity)
         cmd = (" ").join(cmd_args)
@@ -523,7 +591,8 @@ def main():
 
         # Generate figures showing the quantitative comparison
         exe = os.path.abspath(
-            show_evaluated_simulated_stack_similarity.__file__)
+            show_evaluated_simulated_stack_similarity.__file__
+        )
         cmd_args = ["python %s" % exe]
         cmd_args.append("--dir-input '%s'" % dir_output_selfsimilarity)
         cmd_args.append("--dir-output '%s'" % dir_output_selfsimilarity)
@@ -535,7 +604,8 @@ def main():
         # Generate pdfs showing all the side-by-side comparisons
         if 0:
             exe = os.path.abspath(
-                export_side_by_side_simulated_vs_original_slice_comparison.__file__)
+                export_side_by_side_simulated_vs_original_slice_comparison.__file__
+            )
             cmd_args = ["python %s" % exe]
             cmd_args.append("--filenames %s" % (" ").join(filenames_simulated))
             cmd_args.append("--dir-output '%s'" % dir_output_orig_vs_proj_pdf)
@@ -548,26 +618,42 @@ def main():
 
     ph.print_title("Summary")
     exe_file_info = os.path.basename(os.path.abspath(__file__)).split(".")[0]
-    print("%s | Computational Time for Bias Field Corrections: %s" % (
-          exe_file_info, elapsed_time_bias))
-    print("%s | Computational Time for Automatic Target Stack Selection: %s" %
-          (exe_file_info, elapsed_time_target_stack))
-    print("%s | Computational Time for Subject Space Reconstruction: %s" % (
-          exe_file_info, elapsed_time_recon_subject_space))
-    print("%s | Computational Time for Template Space Alignment: %s" % (
-          exe_file_info, elapsed_time_register_image))
-    print("%s | Computational Time for Template Space Reconstruction: %s" % (
-          exe_file_info, elapsed_time_recon_template_space))
-    print("%s | Computational Time for Template Space Reconstruction (Mask): %s" % (
-          exe_file_info, elapsed_time_recon_template_space_mask))
+    print(
+        "%s | Computational Time for Bias Field Corrections: %s"
+        % (exe_file_info, elapsed_time_bias)
+    )
+    print(
+        "%s | Computational Time for Automatic Target Stack Selection: %s"
+        % (exe_file_info, elapsed_time_target_stack)
+    )
+    print(
+        "%s | Computational Time for Subject Space Reconstruction: %s"
+        % (exe_file_info, elapsed_time_recon_subject_space)
+    )
+    print(
+        "%s | Computational Time for Template Space Alignment: %s"
+        % (exe_file_info, elapsed_time_register_image)
+    )
+    print(
+        "%s | Computational Time for Template Space Reconstruction: %s"
+        % (exe_file_info, elapsed_time_recon_template_space)
+    )
+    print(
+        "%s | Computational Time for Template Space Reconstruction (Mask): %s"
+        % (exe_file_info, elapsed_time_recon_template_space_mask)
+    )
     if args.run_diagnostics:
-        print("%s | Computational Time for Diagnostics: %s" % (
-              exe_file_info, elapsed_time_diagnostics))
-    print("%s | Computational Time for Pipeline: %s" % (
-          exe_file_info, ph.stop_timing(time_start_total)))
+        print(
+            "%s | Computational Time for Diagnostics: %s"
+            % (exe_file_info, elapsed_time_diagnostics)
+        )
+    print(
+        "%s | Computational Time for Pipeline: %s"
+        % (exe_file_info, ph.stop_timing(time_start_total))
+    )
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
