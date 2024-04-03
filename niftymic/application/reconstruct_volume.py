@@ -91,29 +91,32 @@ def main():
     input_parser.add_viewer(default="itksnap")
     input_parser.add_v2v_method(default="RegAladin")
     input_parser.add_argument(
-        "--v2v-robust", "-v2v-robust",
-        action='store_true',
+        "--v2v-robust",
+        "-v2v-robust",
+        action="store_true",
         help="If given, a more robust volume-to-volume registration step is "
         "performed, i.e. four rigid registrations are performed using four "
         "rigid transform initializations based on "
-        "principal component alignment of associated masks."
+        "principal component alignment of associated masks.",
     )
     input_parser.add_argument(
-        "--s2v-hierarchical", "-s2v-hierarchical",
-        action='store_true',
+        "--s2v-hierarchical",
+        "-s2v-hierarchical",
+        action="store_true",
         help="If given, a hierarchical approach for the first slice-to-volume "
         "registration cycle is used, i.e. sub-packages defined by the "
         "specified interleave (--interleave) are registered until each "
-        "slice is registered independently."
+        "slice is registered independently.",
     )
     input_parser.add_argument(
-        "--sda", "-sda",
-        action='store_true',
+        "--sda",
+        "-sda",
+        action="store_true",
         help="If given, the volumetric reconstructions are performed using "
         "Scattered Data Approximation (Vercauteren et al., 2006). "
         "'alpha' is considered the final 'sigma' for the "
         "iterative adjustment. "
-        "Recommended value is, e.g., --alpha 0.8"
+        "Recommended value is, e.g., --alpha 0.8",
     )
     input_parser.add_option(
         option_string="--transforms-history",
@@ -131,13 +134,15 @@ def main():
     debug = False
 
     if args.v2v_method not in V2V_METHOD_OPTIONS:
-        raise ValueError("v2v-method must be in {%s}" % (
-            ", ".join(V2V_METHOD_OPTIONS)))
+        raise ValueError(
+            "v2v-method must be in {%s}" % (", ".join(V2V_METHOD_OPTIONS))
+        )
 
     if np.alltrue([not args.output.endswith(t) for t in ALLOWED_EXTENSIONS]):
         raise ValueError(
-            "output filename invalid; allowed extensions are: %s" %
-            ", ".join(ALLOWED_EXTENSIONS))
+            "output filename invalid; allowed extensions are: %s"
+            % ", ".join(ALLOWED_EXTENSIONS)
+        )
 
     if args.alpha_first < args.alpha and not args.sda:
         raise ValueError("It must hold alpha-first >= alpha")
@@ -163,15 +168,18 @@ def main():
     if len(args.boundary_stacks) is not 3:
         raise IOError(
             "Provide exactly three values for '--boundary-stacks' to define "
-            "cropping in i-, j-, and k-dimension of the input stacks")
+            "cropping in i-, j-, and k-dimension of the input stacks"
+        )
 
     data_reader.read_data()
     stacks = data_reader.get_data()
     ph.print_info("%d input stacks read for further processing" % len(stacks))
 
     if all(s.is_unity_mask() is True for s in stacks):
-        ph.print_warning("No mask is provided! "
-                         "Generated reconstruction space may be very big!")
+        ph.print_warning(
+            "No mask is provided! "
+            "Generated reconstruction space may be very big!"
+        )
         ph.print_warning("Consider using a mask to speed up computations")
 
         # args.extra_frame_target = 0
@@ -186,7 +194,8 @@ def main():
         except ValueError as e:
             raise ValueError(
                 "--target-stack must correspond to an image as provided by "
-                "--filenames")
+                "--filenames"
+            )
 
     # ---------------------------Data Preprocessing---------------------------
     ph.print_title("Data Preprocessing")
@@ -220,7 +229,8 @@ def main():
         reference = st.Stack.from_filename(
             file_path=args.reference,
             file_path_mask=args.reference_mask,
-            extract_slices=False)
+            extract_slices=False,
+        )
 
     else:
         reference = st.Stack.from_stack(stacks[target_stack_index])
@@ -230,9 +240,10 @@ def main():
 
         if args.v2v_method == "FLIRT":
             # Define search angle ranges for FLIRT in all three dimensions
-            search_angles = ["-searchr%s -%d %d" %
-                             (x, args.search_angle, args.search_angle)
-                             for x in ["x", "y", "z"]]
+            search_angles = [
+                "-searchr%s -%d %d" % (x, args.search_angle, args.search_angle)
+                for x in ["x", "y", "z"]
+            ]
             options = (" ").join(search_angles)
             # options += " -noresample"
 
@@ -276,22 +287,30 @@ def main():
 
         for i, stack in enumerate(stacks):
             if i == target_stack_index:
-                ph.print_info("Stack %d (%s): Reference image. Skipped." % (
-                    i + 1, stack.get_filename()))
+                ph.print_info(
+                    "Stack %d (%s): Reference image. Skipped."
+                    % (i + 1, stack.get_filename())
+                )
                 continue
             else:
-                ph.print_info("Stack %d (%s): Intensity Correction ... " % (
-                    i + 1, stack.get_filename()), newline=False)
+                ph.print_info(
+                    "Stack %d (%s): Intensity Correction ... "
+                    % (i + 1, stack.get_filename()),
+                    newline=False,
+                )
             intensity_corrector.set_stack(stack)
             intensity_corrector.set_reference(
                 stacks[target_stack_index].get_resampled_stack(
                     resampling_grid=stack.sitk,
                     interpolator="NearestNeighbor",
-                ))
+                )
+            )
             intensity_corrector.run_linear_intensity_correction()
             stacks[i] = intensity_corrector.get_intensity_corrected_stack()
-            print("done (c1 = %g) " %
-                  intensity_corrector.get_intensity_correction_coefficients())
+            print(
+                "done (c1 = %g) "
+                % intensity_corrector.get_intensity_correction_coefficients()
+            )
 
     # ---------------------------Create first volume---------------------------
     time_tmp = ph.start_timing()
@@ -299,10 +318,12 @@ def main():
     # Isotropic resampling to define HR target space
     ph.print_title("Reconstruction Space Generation")
     HR_volume = reference.get_isotropically_resampled_stack(
-        resolution=args.isotropic_resolution)
+        resolution=args.isotropic_resolution
+    )
     ph.print_info(
-        "Isotropic reconstruction space with %g mm resolution is created" %
-        HR_volume.sitk.GetSpacing()[0])
+        "Isotropic reconstruction space with %g mm resolution is created"
+        % HR_volume.sitk.GetSpacing()[0]
+    )
 
     if args.reference is None:
         # Create joint image mask in target space
@@ -315,7 +336,8 @@ def main():
         HR_volume = joint_image_mask_builder.get_stack()
         ph.print_info(
             "Isotropic reconstruction space is centered around "
-            "joint stack masks. ")
+            "joint stack masks. "
+        )
 
         # Crop to space defined by mask (plus extra margin)
         HR_volume = HR_volume.get_cropped_stack_based_on_mask(
@@ -332,13 +354,16 @@ def main():
         if args.outlier_rejection and threshold_v2v > -1:
             ph.print_subtitle("SDA Approximation")
             SDA = sda.ScatteredDataApproximation(
-                stacks, HR_volume, sigma=args.sigma)
+                stacks, HR_volume, sigma=args.sigma
+            )
             SDA.run()
             HR_volume = SDA.get_reconstruction()
 
             # Identify and reject outliers
-            ph.print_subtitle("Eliminate slice outliers (%s < %g)" % (
-                rejection_measure, threshold_v2v))
+            ph.print_subtitle(
+                "Eliminate slice outliers (%s < %g)"
+                % (rejection_measure, threshold_v2v)
+            )
             outlier_rejector = outre.OutlierRejector(
                 stacks=stacks,
                 reference=HR_volume,
@@ -351,13 +376,15 @@ def main():
 
         ph.print_subtitle("SDA Approximation Image")
         SDA = sda.ScatteredDataApproximation(
-            stacks, HR_volume, sigma=args.sigma)
+            stacks, HR_volume, sigma=args.sigma
+        )
         SDA.run()
         HR_volume = SDA.get_reconstruction()
 
         ph.print_subtitle("SDA Approximation Image Mask")
         SDA = sda.ScatteredDataApproximation(
-            stacks, HR_volume, sigma=args.sigma, sda_mask=True)
+            stacks, HR_volume, sigma=args.sigma, sda_mask=True
+        )
         SDA.run()
         # HR volume contains updated mask based on SDA
         HR_volume = SDA.get_reconstruction()
@@ -425,20 +452,22 @@ def main():
         # Define the regularization parameters for the individual
         # reconstruction steps in the two-step cycles
         alphas = np.linspace(
-            alpha_range[0], alpha_range[1], args.two_step_cycles)
+            alpha_range[0], alpha_range[1], args.two_step_cycles
+        )
 
         # Define outlier rejection threshold after each S2V-reg step
         thresholds = np.linspace(
-            args.threshold_first, args.threshold, args.two_step_cycles)
+            args.threshold_first, args.threshold, args.two_step_cycles
+        )
 
-        two_step_s2v_reg_recon = \
+        two_step_s2v_reg_recon = (
             pipeline.TwoStepSliceToVolumeRegistrationReconstruction(
                 stacks=stacks,
                 reference=HR_volume,
                 registration_method=registration,
                 reconstruction_method=recon_method,
                 cycles=args.two_step_cycles,
-                alphas=alphas[0:args.two_step_cycles - 1],
+                alphas=alphas[0 : args.two_step_cycles - 1],
                 outlier_rejection=args.outlier_rejection,
                 threshold_measure=rejection_measure,
                 thresholds=thresholds,
@@ -447,13 +476,17 @@ def main():
                 verbose=args.verbose,
                 use_hierarchical_registration=args.s2v_hierarchical,
             )
+        )
         two_step_s2v_reg_recon.run()
-        HR_volume_iterations = \
+        HR_volume_iterations = (
             two_step_s2v_reg_recon.get_iterative_reconstructions()
-        time_registration += \
+        )
+        time_registration += (
             two_step_s2v_reg_recon.get_computational_time_registration()
-        time_reconstruction += \
+        )
+        time_reconstruction += (
             two_step_s2v_reg_recon.get_computational_time_reconstruction()
+        )
         stacks = two_step_s2v_reg_recon.get_stacks()
 
     # no two-step s2v-registration/reconstruction iterations
@@ -464,7 +497,8 @@ def main():
     ph.print_title("Write Motion Correction Results")
     if args.write_motion_correction:
         dir_output_mc = os.path.join(
-            dir_output, args.subfolder_motion_correction)
+            dir_output, args.subfolder_motion_correction
+        )
         ph.clear_directory(dir_output_mc)
 
         for stack in stacks:
@@ -499,15 +533,16 @@ def main():
                     deleted_slices_dic[stack.get_filename()] = deleted_slices
                     ph.print_info(
                         "All slices of stack '%s' were rejected entirely. "
-                        "Information added." % stack.get_filename())
+                        "Information added." % stack.get_filename()
+                    )
 
             ph.write_dictionary_to_json(
                 deleted_slices_dic,
                 os.path.join(
                     dir_output,
                     args.subfolder_motion_correction,
-                    "rejected_slices.json"
-                )
+                    "rejected_slices.json",
+                ),
             )
 
     # ---------------------Final Volumetric Reconstruction---------------------
@@ -524,7 +559,9 @@ def main():
             recon_method = pd.PrimalDualSolver(
                 stacks=stacks,
                 reconstruction=HR_volume,
-                reg_type="TV" if args.reconstruction_type == "TVL2" else "huber",
+                reg_type=(
+                    "TV" if args.reconstruction_type == "TVL2" else "huber"
+                ),
                 iterations=args.iterations,
                 use_masks=args.use_masks_srr,
             )
@@ -532,19 +569,39 @@ def main():
             recon_method = tk.TikhonovSolver(
                 stacks=stacks,
                 reconstruction=HR_volume,
-                reg_type="TK1" if args.reconstruction_type == "TK1L2" else "TK0",
+                reg_type=(
+                    "TK1" if args.reconstruction_type == "TK1L2" else "TK0"
+                ),
                 use_masks=args.use_masks_srr,
             )
         recon_method.set_alpha(args.alpha)
         recon_method.set_iter_max(args.iter_max)
         recon_method.set_verbose(True)
     recon_method.run()
+
     time_reconstruction += recon_method.get_computational_time()
     HR_volume_final = recon_method.get_reconstruction()
 
+    # ADDED BY TS # # # # # # # # # # # # # # # # # # # # #
+    # Also do an SDA to reconstruct the image without TV:
+    recon_method2 = sda.ScatteredDataApproximation(
+        stacks,
+        HR_volume,
+        sigma=args.alpha,
+        use_masks=args.use_masks_srr,
+    )
+    recon_method2.run()
+
+    dw.DataWriter.write_image(
+        recon_method2.get_reconstruction().sitk,
+        (args.output).replace(".nii.gz", "_sda.nii.gz"),
+        description="SDA approximation for T2 mapping",
+    )
+    # # # # # # # # # # # # # # # # # # # # # # # # # # #
     ph.print_subtitle("Final SDA Approximation Image Mask")
     SDA = sda.ScatteredDataApproximation(
-        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True)
+        stacks, HR_volume_final, sigma=args.sigma, sda_mask=True
+    )
     SDA.run()
     # HR volume contains updated mask based on SDA
     HR_volume_final = SDA.get_reconstruction()
@@ -556,13 +613,13 @@ def main():
     filename = recon_method.get_setting_specific_filename()
     HR_volume_final.set_filename(filename)
     dw.DataWriter.write_image(
-        HR_volume_final.sitk,
-        args.output,
-        description=filename)
+        HR_volume_final.sitk, args.output, description=filename
+    )
     dw.DataWriter.write_mask(
         HR_volume_final.sitk_mask,
         ph.append_to_filename(args.output, "_mask"),
-        description=SDA.get_setting_specific_filename())
+        description=SDA.get_setting_specific_filename(),
+    )
 
     HR_volume_iterations.insert(0, HR_volume_final)
     for stack in stacks:
@@ -578,19 +635,27 @@ def main():
     # Summary
     ph.print_title("Summary")
     exe_file_info = os.path.basename(os.path.abspath(__file__)).split(".")[0]
-    print("%s | Computational Time for Data Preprocessing: %s" %
-          (exe_file_info, time_data_preprocessing))
-    print("%s | Computational Time for Registrations: %s" %
-          (exe_file_info, time_registration))
-    print("%s | Computational Time for Reconstructions: %s" %
-          (exe_file_info, time_reconstruction))
-    print("%s | Computational Time for Entire Reconstruction Pipeline: %s" %
-          (exe_file_info, elapsed_time_total))
+    print(
+        "%s | Computational Time for Data Preprocessing: %s"
+        % (exe_file_info, time_data_preprocessing)
+    )
+    print(
+        "%s | Computational Time for Registrations: %s"
+        % (exe_file_info, time_registration)
+    )
+    print(
+        "%s | Computational Time for Reconstructions: %s"
+        % (exe_file_info, time_reconstruction)
+    )
+    print(
+        "%s | Computational Time for Entire Reconstruction Pipeline: %s"
+        % (exe_file_info, elapsed_time_total)
+    )
 
     ph.print_line_separator()
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
