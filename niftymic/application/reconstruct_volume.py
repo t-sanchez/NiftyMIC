@@ -326,6 +326,7 @@ def main():
     )
 
     if args.reference is None:
+        ph.print_info("Reference is None")
         # Create joint image mask in target space
         joint_image_mask_builder = imb.JointImageMaskBuilder(
             stacks=stacks,
@@ -391,6 +392,14 @@ def main():
 
         HR_volume.set_filename(SDA.get_setting_specific_filename())
 
+        ph.print_info("Saving the initial SDA")
+        dw.DataWriter.write_image(
+            HR_volume.sitk,
+            (args.output).replace(".nii.gz", "_sda_init.nii.gz"),
+            description="Initial SDA approximation for T2 mapping",
+        )
+    else:
+        print("Reference is not None")
     time_reconstruction = ph.stop_timing(time_tmp)
 
     if args.verbose:
